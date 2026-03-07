@@ -41,15 +41,17 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'Method not allowed' });
     }
     const { method, path, payload } = req.body;
+    const atMethod = (method || 'GET').toUpperCase();
+    // path may include query string for GET requests
     const url = `https://api.airtable.com/v0/${path}`;
     const fetchOptions = {
-      method: method || 'GET',
+      method: atMethod,
       headers: {
         'Authorization': `Bearer ${process.env.AIRTABLE_TOKEN}`,
         'Content-Type': 'application/json',
       },
     };
-    if (method === 'POST' || method === 'PATCH') {
+    if ((atMethod === 'POST' || atMethod === 'PATCH') && payload) {
       fetchOptions.body = JSON.stringify(payload);
     }
     const response = await fetch(url, fetchOptions);
