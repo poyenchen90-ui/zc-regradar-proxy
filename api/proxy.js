@@ -1,4 +1,11 @@
-// v2 - supports Anthropic + Airtable
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
@@ -30,7 +37,10 @@ export default async function handler(req, res) {
 
   // Route 2: Airtable API
   if (target === 'airtable') {
-    const { method, path } = req.body;
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+    const { method, path, payload } = req.body;
     const url = `https://api.airtable.com/v0/${path}`;
     const fetchOptions = {
       method: method || 'GET',
@@ -40,7 +50,7 @@ export default async function handler(req, res) {
       },
     };
     if (method === 'POST' || method === 'PATCH') {
-      fetchOptions.body = JSON.stringify(req.body.payload);
+      fetchOptions.body = JSON.stringify(payload);
     }
     const response = await fetch(url, fetchOptions);
     const data = await response.json();
@@ -49,4 +59,3 @@ export default async function handler(req, res) {
 
   return res.status(400).json({ error: 'Unknown target' });
 }
-
