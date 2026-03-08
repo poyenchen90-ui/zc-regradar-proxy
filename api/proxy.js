@@ -7,9 +7,9 @@ export const config = {
 };
 
 // ── 設定 ──────────────────────────────────────────────
-const DAILY_LIMIT   = 5;               // ← 每天每人上限，改這裡
+const DAILY_LIMIT   = 10;
 const AIRTABLE_BASE = 'appwr5pb1cU6KrmCo';
-const USAGE_TABLE   = 'Usage Tracking'; // ← Airtable 表名
+const USAGE_TABLE   = 'Usage Tracking';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,23 +27,20 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const email = (req.body.userEmail || '').trim().toLowerCase();
+    // 用 IP 當識別碼，不需要登入
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+            || req.socket?.remoteAddress
+            || 'unknown';
+    const email = ip; // Airtable 欄位名稱維持 email，實際存 IP
 
-    // 1. 驗證登入
-    if (!email || !email.includes('@')) {
-      return res.status(401).json({
-        error: { message: '請先登入會員才能使用 AI 法規問答。' }
-      });
-    }
-
-    const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    const today = new Date().toISOString().slice(0, 10);
     const atBase = `https://api.airtable.com/v0/${AIRTABLE_BASE}`;
     const atHeaders = {
       Authorization: `Bearer ${process.env.AIRTABLE_TOKEN}`,
       'Content-Type': 'application/json',
     };
 
-    // 2. 查今日使用次數
+    // 查今日使用次數
     const filter = encodeURIComponent(`AND({email}="${email}",{date}="${today}")`);
     const searchRes = await fetch(
       `${atBase}/${encodeURIComponent(USAGE_TABLE)}?filterByFormula=${filter}`,
@@ -53,7 +50,7 @@ export default async function handler(req, res) {
     const existing = (searchData.records || [])[0] || null;
     const currentCount = existing ? (existing.fields.count || 0) : 0;
 
-    // 3. 超過上限就擋掉
+    // 超過上限就擋掉
     if (currentCount >= DAILY_LIMIT) {
       return res.status(429).json({
         error: {
@@ -62,7 +59,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. 呼叫 Claude（把 userEmail 從 body 移除，不送給 Anthropic）
+    // 呼叫 Claude（把 userEmail 從 body 移除，不送給 Anthropic）
     const { userEmail, ...claudeBody } = req.body;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -75,7 +72,7 @@ export default async function handler(req, res) {
     });
     const data = await response.json();
 
-    // 5. 成功後才寫回 Airtable 次數
+    // 成功後才寫回 Airtable 次數
     if (!data.error) {
       if (existing) {
         await fetch(`${atBase}/${encodeURIComponent(USAGE_TABLE)}/${existing.id}`, {
@@ -93,7 +90,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // 6. 回傳 Claude 結果 + 剩餘次數（前端用來更新 badge）
       return res.status(response.status).json({
         ...data,
         _quota: {
