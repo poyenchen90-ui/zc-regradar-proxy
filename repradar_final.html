@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZC RepRadar | ESRS × IFRS 永續報告 Gap 分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Sans+TC:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:     #022e15;
+  --green:    #5e8c61;
+  --light:    #f9fbf9;
+  --white:    #ffffff;
+  --body:     #0f2318;
+  --border:   #e0e0e0;
+  --muted:    #4a6e52;
+  --kpi-sub:  #c8ddc8;
+  --gap-full:   #2e7d32;
+  --gap-full-lt:#e8f5e9;
+  --gap-part:   #b45309;
+  --gap-part-lt:#fef3c7;
+  --gap-miss:   #c0392b;
+  --gap-miss-lt:#fdecea;
+  --gap-na:     #607d8b;
+  --gap-na-lt:  #eceff1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'IBM Plex Sans TC',sans-serif;background:var(--light);color:var(--body);width:100%;min-height:100vh;overflow-x:hidden;}
+.topbar{background:var(--navy);border-bottom:2px solid var(--green);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
+.brand{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;letter-spacing:.04em}
+.brand span{color:var(--green)}
+.brand-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#a8c4a8;margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.framework-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(94,140,97,.5);color:var(--kpi-sub);letter-spacing:.06em;}
+.main{max-width:100%;padding:36px 40px 80px}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:32px;line-height:1.7}
+.step-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px 36px;margin-bottom:16px;}
+.step-num{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:5px}
+.step-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--navy);margin-bottom:16px}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--green);background:#f0f7f0}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:28px;margin-bottom:8px}
+.upload-text{font-size:13px;color:var(--body);font-weight:500}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:3px}
+.file-preview{display:flex;align-items:center;gap:10px;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:12px}
+.file-name{font-size:12px;font-weight:600;color:var(--navy);flex:1}
+.file-size{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.file-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;transition:color .15s;padding:0 4px}
+.file-remove:hover{color:var(--gap-miss)}
+.fw-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.fw-card{border:2px solid var(--border);border-radius:10px;padding:16px 18px;cursor:pointer;transition:all .2s;text-align:center;background:var(--light);}
+.fw-card:hover{border-color:var(--green)}
+.fw-card.active{border-color:var(--green);background:#f0f7f0}
+.fw-card input{display:none}
+.fw-icon{font-size:22px;margin-bottom:6px}
+.fw-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:3px}
+.fw-desc{font-size:11px;color:var(--muted)}
+.form-group label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
+.form-group select,.form-group textarea{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:'IBM Plex Sans TC',sans-serif;font-size:13px;color:var(--body);background:var(--light);outline:none;transition:border-color .2s}
+.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.form-group textarea{resize:vertical;min-height:72px}
+.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:600px){.form-grid2{grid-template-columns:1fr}.fw-grid{grid-template-columns:1fr}}
+.btn-row{display:flex;gap:10px;margin-top:4px}
+.submit-btn{flex:1;background:var(--navy);color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.submit-btn:hover{background:#033d1c}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed}
+.submit-btn.green-btn{background:var(--green)}
+.submit-btn.green-btn:hover{background:#4a7a4d}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.submit-btn.loading .spinner{display:block}
+.submit-btn.loading .btn-text{opacity:.7}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:var(--gap-miss-lt);border:1px solid #fca5a5;border-radius:8px;padding:12px 14px;font-size:13px;color:var(--gap-miss);margin-top:12px;display:none}
+.progress-wrap{display:none;margin-top:14px}
+.progress-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
+.progress-bar-bg{background:#e8ece8;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--green);border-radius:4px;transition:width .4s ease;width:0%}
+#results{display:none;margin-top:28px}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.results-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--navy)}
+.results-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px}
+.reset-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-family:'IBM Plex Sans TC',sans-serif;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s}
+.reset-btn:hover{border-color:var(--green);color:var(--green)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--navy);border-radius:10px;padding:18px 20px;border-top:3px solid var(--kc, var(--green));}
+.kpi-num{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff;line-height:1;margin-bottom:4px}
+.kpi-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--kpi-sub);text-transform:uppercase;letter-spacing:.05em}
+.topic-block{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;}
+.topic-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:background .15s;}
+.topic-header:hover{background:#fafcfa}
+.topic-color{width:5px;border-radius:3px;align-self:stretch;min-height:36px;flex-shrink:0}
+.topic-info{flex:1}
+.topic-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+.topic-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--navy)}
+.topic-code{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+.topic-stats{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.stat-pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.pill-full{background:var(--gap-full-lt);color:var(--gap-full)}
+.pill-part{background:var(--gap-part-lt);color:var(--gap-part)}
+.pill-miss{background:var(--gap-miss-lt);color:var(--gap-miss)}
+.pill-na{background:var(--gap-na-lt);color:var(--gap-na)}
+.topic-chevron{font-size:12px;color:var(--muted);flex-shrink:0;transition:transform .2s}
+.topic-header.open .topic-chevron{transform:rotate(90deg)}
+.topic-progress{margin-top:6px}
+.tpb-bg{background:#e8ece8;border-radius:3px;height:4px;overflow:hidden}
+.tpb-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.tpb-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px}
+.topic-body{display:none;border-top:1px solid #f0f5f0;padding:0}
+.topic-body.open{display:block}
+.dr-table{width:100%;border-collapse:collapse;font-size:12px}
+.dr-table th{background:#f5f8f5;padding:8px 14px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500;}
+.dr-table td{padding:10px 14px;border-bottom:1px solid #f0f5f0;vertical-align:top;line-height:1.6}
+.dr-table tr:last-child td{border-bottom:none}
+.dr-table tr:hover td{background:#fafcfa}
+.dr-code{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--navy);white-space:nowrap}
+.dr-name{font-size:12px;color:var(--body);max-width:220px}
+.dr-gap-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.badge-full{background:var(--gap-full-lt);color:var(--gap-full)}
+.badge-part{background:var(--gap-part-lt);color:var(--gap-part)}
+.badge-miss{background:var(--gap-miss-lt);color:var(--gap-miss)}
+.badge-na{background:var(--gap-na-lt);color:var(--gap-na)}
+.dr-finding{font-size:12px;color:var(--body);line-height:1.6}
+.dr-rec{font-size:11px;color:var(--gap-part);line-height:1.5;margin-top:3px;font-style:italic}
+.dr-expand-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:0;transition:color .15s}
+.dr-expand-btn:hover{color:var(--green)}
+.dr-detail-row{display:none;background:#fafcfa}
+.dr-detail-row.open{display:table-row}
+.dr-detail-inner{padding:10px 14px 14px 40px;font-size:12px;line-height:1.7;color:var(--body)}
+.dr-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+@media(max-width:600px){.dr-detail-grid{grid-template-columns:1fr}}
+.dr-detail-label{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.dr-detail-val{font-size:12px;color:var(--body);line-height:1.6}
+.dl-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:8px 16px;font-family:'IBM Plex Sans TC',sans-serif;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.dl-btn:hover{border-color:var(--green);color:var(--green)}
+.disclaimer{background:#fffbf0;border:1px solid #f0e080;border-radius:8px;padding:12px 16px;font-size:12px;color:#7a6000;margin-top:20px;line-height:1.6}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.legend-item{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="brand">ZC <span>RepRadar</span> &nbsp;|&nbsp; ESRS × IFRS Gap 分析</div>
+    <div class="brand-sub">SUSTAINABILITY REPORTING COMPLIANCE INTELLIGENCE</div>
+  </div>
+  <div class="topbar-right">
+    <div class="framework-badge">ESRS 2024</div>
+    <div class="framework-badge">IFRS S1/S2</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-title">永續報告 Gap 分析</div>
+  <div class="page-sub">上傳貴公司的永續報告或 ESG 報告書，AI 自動比對 ESRS／IFRS 揭露要求，<br>找出已揭露、部分揭露、及缺口所在，輸出完整 Gap Analysis 報告。</div>
+
+  <div class="step-card">
+    <div class="step-num">Step 01</div>
+    <div class="step-title">上傳永續報告 / ESG 報告書 PDF</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="pdfInput" accept=".pdf" onchange="handleFile(event)">
+      <div class="upload-icon">📋</div>
+      <div class="upload-text">點擊或拖曳上傳 PDF</div>
+      <div class="upload-hint">支援文字型 PDF（非掃描圖片），建議 20MB 以內</div>
+    </div>
+    <div class="file-preview" id="filePreview" style="display:none">
+      <span style="font-size:20px">📄</span>
+      <span class="file-name" id="fileName"></span>
+      <span class="file-size" id="fileSize"></span>
+      <button class="file-remove" onclick="removeFile()">✕</button>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-num">Step 02</div>
+    <div class="step-title">選擇分析框架</div>
+    <div class="fw-grid">
+      <label class="fw-card active" onclick="setFW(this,'both')">
+        <input type="radio" name="fw" value="both" checked>
+        <div class="fw-icon">🔀</div>
+        <div class="fw-name">ESRS + IFRS 整合</div>
+        <div class="fw-desc">同時比對兩個框架，顯示交叉對應關係</div>
+      </label>
+      <label class="fw-card" onclick="setFW(this,'esrs')">
+        <input type="radio" name="fw" value="esrs">
+        <div class="fw-icon">🇪🇺</div>
+        <div class="fw-name">ESRS 僅限</div>
+        <div class="fw-desc">歐盟永續報告準則，適合 CSRD 合規</div>
+      </label>
+      <label class="fw-card" onclick="setFW(this,'ifrs')">
+        <input type="radio" name="fw" value="ifrs">
+        <div class="fw-icon">🌐</div>
+        <div class="fw-name">IFRS S1/S2 僅限</div>
+        <div class="fw-desc">國際永續揭露準則，適合資本市場揭露</div>
+      </label>
+    </div>
+    <div class="form-grid2">
+      <div class="form-group">
+        <label>公司產業別（有助提升分析準確度）</label>
+        <select id="industrySelect">
+          <option value="">不指定</option>
+          <option>金融服務</option><option>製造業</option><option>科技/電子</option>
+          <option>能源/公用事業</option><option>零售/消費品</option><option>食品/農業</option>
+          <option>不動產/建設</option><option>交通/物流</option><option>醫療/製藥</option>
+          <option>化工/材料</option><option>其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>報告年度</label>
+        <select id="reportYear">
+          <option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>補充說明（已知的揭露限制、特殊情況等）</label>
+        <textarea id="extraNote" placeholder="例：本報告為首次 CSRD 報告，部分數據仍在建置中；S2 範疇三排放數據尚未完整…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#fffbf0;border:1px solid #f0e080;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:12px;color:#7a6000;line-height:1.7;">
+    <div style="font-weight:600;margin-bottom:5px;font-size:13px;">⚠️ 使用前請注意</div>
+    本工具由 AI 自動比對揭露要求，分析結果僅供<strong>初步參考</strong>，不構成法律、審計或專業合規意見。實際合規義務請以主管機關最新公告為準，並諮詢專業顧問確認。
+    如有任何疑問或需要深度 Gap 分析服務，歡迎聯繫 <strong>Zeelandia Consulting（ZC）</strong> 顧問團隊：
+    <a href="https://www.zeelandiaconsulting.com" target="_blank" rel="noopener" style="color:#5a4800;font-weight:600;text-decoration:underline;">zeelandiaconsulting.com</a> ｜
+    <a href="mailto:contact@zeelandiaconsulting.com" style="color:#5a4800;font-weight:600;text-decoration:underline;">contact@zeelandiaconsulting.com</a>
+  </div>
+
+  <div class="btn-row">
+    <button class="submit-btn green-btn" id="demoBtn" onclick="runDemo()">
+      <span class="btn-text">⚡ 體驗 Demo 示範</span>
+    </button>
+    <button class="submit-btn" id="submitBtn" onclick="runAnalysis()">
+      <div class="spinner"></div>
+      <span class="btn-text">🔍 開始 Gap 分析</span>
+    </button>
+  </div>
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">載入框架資料庫…</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  </div>
+
+  <button onclick="testProxy()" style="margin-top:10px;background:none;border:1px solid #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:#aaa;cursor:pointer;">🔧 測試 Proxy 連線</button>
+
+  <div id="results">
+    <div class="results-header">
+      <div>
+        <div class="results-title">Gap 分析報告</div>
+        <div class="results-meta" id="resultsMeta"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="dl-btn" onclick="downloadCSV()">⬇ 下載 CSV</button>
+        <button class="reset-btn" onclick="resetForm()">↺ 重新分析</button>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card" style="--kc:var(--gap-full)">
+        <div class="kpi-num" id="kpiFullCount">0</div>
+        <div class="kpi-label">✅ 已完整揭露</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--gap-part)">
+        <div class="kpi-num" id="kpiPartCount">0</div>
+        <div class="kpi-label">⚡ 部分揭露</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--gap-miss)">
+        <div class="kpi-num" id="kpiMissCount">0</div>
+        <div class="kpi-label">❌ 缺口 / 未揭露</div>
+      </div>
+      <div class="kpi-card" style="--kc:var(--gap-na)">
+        <div class="kpi-num" id="kpiNaCount">0</div>
+        <div class="kpi-label">— 不適用</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gap-full)"></div>已完整揭露</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gap-part)"></div>部分揭露（有缺口）</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gap-miss)"></div>缺口 / 未揭露</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gap-na)"></div>不適用 / 已說明豁免</div>
+    </div>
+
+    <div id="topicList"></div>
+
+    <div class="disclaimer">
+      <div style="font-weight:600;margin-bottom:8px;font-size:13px;">⚠️ 免責聲明</div>
+      本 Gap 分析報告由 AI 自動生成，僅供初步參考，不構成法律、審計或專業合規意見。實際合規義務因企業規模、產業別、報告年度及主管機關解釋而有所不同，請以主管機關最新公告為準。
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e8d840;">
+        如需專業協助，歡迎聯繫 <strong>Zeelandia Consulting（ZC）</strong> 顧問團隊，我們提供 ESRS／IFRS 合規諮詢、報告書撰寫、Gap 分析與查核準備等完整服務。<br><br>
+        🌐 官方網站：<a href="https://www.zeelandiaconsulting.com" target="_blank" rel="noopener" style="color:#5a4800;font-weight:600;text-decoration:underline;">zeelandiaconsulting.com</a><br>
+        📧 來信諮詢：<a href="mailto:contact@zeelandiaconsulting.com" style="color:#5a4800;font-weight:600;text-decoration:underline;">contact@zeelandiaconsulting.com</a><br>
+        📅 預約顧問：<a href="https://calendly.com/poyen-chen/30min" target="_blank" rel="noopener" style="color:#5a4800;font-weight:600;text-decoration:underline;">立即預約顧問 →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  PROXY_URL     : 'https://zc-regradar-proxy.vercel.app/api/proxy?target=repradar',
+  AIRTABLE_TOKEN: 'patfRFLP4qLMGuYNK.8b4195a9134d7233438327a103967aca9f28a8285aa9c506ebd310298e7a1806',
+  AIRTABLE_BASE : 'app3ompnRhE1L8xqg',
+  AIRTABLE_TABLE: 'IFRS x ESRS',
+};
+
+const F = {
+  framework:'框架', standard:'準則', dr_code:'段落/DR代碼', domain:'報告領域',
+  dr_name:'揭露要求名稱', content:'說明內容', notes:'補充說明/備註',
+  law_ref:'EU/IFRS法規對應', esrs_ref:'對應條文（ESRS）', ifrs_ref:'對應條文（IFRS）',
+  mandatory:'強制性', phased:'分階段/過渡', scope:'適用範圍',
+  materiality:'重大性框架', topic:'主題分類',
+};
+
+let pdfFile = null, allRecords = [], selectedFW = 'both', lastResults = null;
+
+function setFW(el, val) {
+  document.querySelectorAll('.fw-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active'); selectedFW = val;
+}
+
+function handleFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  pdfFile = f;
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileSize').textContent = (f.size/1024/1024).toFixed(2) + ' MB';
+  document.getElementById('filePreview').style.display = 'flex';
+  document.getElementById('uploadZone').style.display = 'none';
+}
+function removeFile() {
+  pdfFile = null;
+  document.getElementById('pdfInput').value = '';
+  document.getElementById('filePreview').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadZone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f?.type === 'application/pdf') {
+      pdfFile = f;
+      document.getElementById('fileName').textContent = f.name;
+      document.getElementById('fileSize').textContent = (f.size/1024/1024).toFixed(2) + ' MB';
+      document.getElementById('filePreview').style.display = 'flex';
+      document.getElementById('uploadZone').style.display = 'none';
+    }
+  });
+});
+
+async function fetchRecords() {
+  if (allRecords.length > 0) return allRecords;
+  const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE}/${encodeURIComponent(CONFIG.AIRTABLE_TABLE)}`;
+  const headers = { Authorization: `Bearer ${CONFIG.AIRTABLE_TOKEN}` };
+  let records = [], offset = null;
+  do {
+    const params = new URLSearchParams({ pageSize: '100' });
+    if (offset) params.set('offset', offset);
+    const res = await fetch(`${url}?${params}`, { headers });
+    if (!res.ok) throw new Error('無法載入框架資料庫 (' + res.status + ')');
+    const data = await res.json();
+    records = records.concat(data.records || []);
+    offset = data.offset || null;
+  } while (offset);
+  allRecords = records;
+  return records;
+}
+
+function gf(record, key) {
+  const name = F[key]; if (!name) return '';
+  return cleanVal(record.fields?.[name]);
+}
+function cleanVal(val) {
+  if (val == null) return '';
+  if (typeof val === 'boolean') return val ? '是' : '否';
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(cleanVal).filter(Boolean).join('、');
+  if (typeof val === 'object') return val.name || val.text || val.value || val.email || Object.values(val).find(v => typeof v === 'string') || '';
+  return String(val);
+}
+
+async function extractPdfText(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ab  = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+  let text = '';
+  for (let i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text.trim();
+}
+
+function showProgress(label, pct) {
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('progressLabel').textContent = label;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
+
+function filterByFW(records) {
+  if (selectedFW === 'both') return records;
+  if (selectedFW === 'esrs') return records.filter(r => gf(r,'framework').toLowerCase().includes('esrs'));
+  if (selectedFW === 'ifrs') return records.filter(r => {
+    const fw = gf(r,'framework').toLowerCase();
+    return fw.includes('ifrs') || fw.includes('s1') || fw.includes('s2');
+  });
+  return records;
+}
+
+async function runAnalysis() {
+  const btn = document.getElementById('submitBtn');
+  const errBox = document.getElementById('errorBox');
+  errBox.style.display = 'none';
+  if (!pdfFile) { showError('請先上傳永續報告 PDF'); return; }
+
+  btn.disabled = true; btn.classList.add('loading');
+  document.getElementById('demoBtn').disabled = true;
+
+  try {
+    showProgress('正在載入框架資料庫…', 10);
+    const records  = await fetchRecords();
+    const filtered = filterByFW(records);
+
+    showProgress(`讀取 PDF（共 ${filtered.length} 條揭露要求）…`, 25);
+    let pdfText;
+    try { pdfText = await extractPdfText(pdfFile); }
+    catch(e) { throw new Error('PDF 讀取失敗：' + e.message); }
+    if (!pdfText || pdfText.length < 100) throw new Error('PDF 無法讀取文字，請確認不是掃描圖片格式');
+
+    const industry   = document.getElementById('industrySelect').value;
+    const year       = document.getElementById('reportYear').value;
+    const note       = document.getElementById('extraNote').value;
+    const fwLabel    = selectedFW === 'both' ? 'ESRS 及 IFRS S1/S2' : selectedFW === 'esrs' ? 'ESRS' : 'IFRS S1/S2';
+    const pdfPreview = pdfText.substring(0, 4000);
+
+    const BATCH_SIZE = 50;
+    const batches = [];
+    for (let i = 0; i < filtered.length; i += BATCH_SIZE) batches.push(filtered.slice(i, i + BATCH_SIZE));
+
+    let allResults = [], company_name = '', report_summary = '', lastQuota = null;
+
+    for (let b = 0; b < batches.length; b++) {
+      const batch      = batches[b];
+      const batchStart = b * BATCH_SIZE;
+      const pct        = 30 + Math.round((b / batches.length) * 60);
+      showProgress(`AI 分析中… 第 ${b+1} / ${batches.length} 批（共 ${filtered.length} 條）`, pct);
+
+      const drList = batch.map((r, i) => {
+        const idx = batchStart + i + 1;
+        return `[${idx}] (${gf(r,'framework')}) ${gf(r,'dr_code')} — ${gf(r,'dr_name')}｜主題:${gf(r,'topic')}｜強制:${gf(r,'mandatory')}｜說明:${gf(r,'content')?.substring(0,100)}`;
+      }).join('\n');
+
+      const isFirst = b === 0;
+      const prompt  = `你是永續報告合規專家，精通 ${fwLabel} 框架。請分析以下永續報告，逐一評估每條揭露要求（DR）的揭露狀況。
+
+【報告基本資訊】
+- 產業：${industry || '未指定'}
+- 報告年度：${year}
+- 補充說明：${note || '無'}
+
+【報告內容（前4000字）】
+${pdfPreview}
+
+【本批揭露要求（第 ${batchStart+1}–${batchStart+batch.length} 條，共 ${filtered.length} 條）】
+${drList}
+
+請以 JSON 格式輸出：
+{
+  ${isFirst ? '"report_summary": "報告整體ESG揭露成熟度摘要（60字內）",' : ''}
+  ${isFirst ? '"company_name": "從報告識別的公司名稱（找不到填空字串）",' : ''}
+  "results": [
+    {
+      "index": 條目編號(對應上方[]內數字),
+      "status": "full" | "partial" | "missing" | "na",
+      "finding": "評估說明（40字內）",
+      "recommendation": "改善建議（40字內，full時填空字串）"
+    }
+  ]
+}
+
+status：full=完整揭露｜partial=部分揭露｜missing=完全未揭露｜na=不適用
+規則：必須對本批所有 ${batch.length} 條給出評估。輸出純 JSON，不加任何說明或 markdown。`;
+
+      const apiRes = await fetch(CONFIG.PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, messages:[{ role:'user', content:prompt }] })
+      });
+
+      if (!apiRes.ok) {
+        const t = await apiRes.text().catch(() => '');
+        let msg = `API 錯誤 ${apiRes.status}`;
+        try { msg = JSON.parse(t)?.error?.message || msg; } catch(e) {}
+        throw new Error(msg);
+      }
+
+      const apiData = await apiRes.json();
+      if (apiData._quota) lastQuota = apiData._quota;
+
+      const raw = apiData.content?.find(bl => bl.type === 'text')?.text || '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error(`第 ${b+1} 批 AI 回應格式錯誤，請重試`);
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      if (isFirst) { company_name = parsed.company_name || ''; report_summary = parsed.report_summary || ''; }
+      allResults = allResults.concat(parsed.results || []);
+    }
+
+    showProgress('整合分析結果…', 95);
+    hideProgress();
+
+    const merged = { company_name, report_summary, results: allResults };
+    renderResults(merged, filtered);
+
+    if (lastQuota) {
+      const qmsg = lastQuota.remaining > 0 ? `今日剩餘 ${lastQuota.remaining} 次額度` : `今日額度已用完，明天再來`;
+      document.getElementById('resultsMeta').textContent += `　｜ ${qmsg}`;
+    }
+
+  } catch(e) {
+    hideProgress();
+    showError('分析失敗：' + e.message);
+  }
+
+  btn.disabled = false; btn.classList.remove('loading');
+  btn.querySelector('.btn-text').textContent = '🔍 開始 Gap 分析';
+  document.getElementById('demoBtn').disabled = false;
+}
+
+function renderResults(parsed, records) {
+  lastResults = { parsed, records };
+  const results = parsed.results || [];
+  let full = 0, part = 0, miss = 0, na = 0;
+  results.forEach(r => {
+    if (r.status === 'full') full++;
+    else if (r.status === 'partial') part++;
+    else if (r.status === 'missing') miss++;
+    else if (r.status === 'na') na++;
+  });
+  document.getElementById('kpiFullCount').textContent = full;
+  document.getElementById('kpiPartCount').textContent = part;
+  document.getElementById('kpiMissCount').textContent = miss;
+  document.getElementById('kpiNaCount').textContent   = na;
+
+  const company = parsed.company_name ? `${parsed.company_name} ｜ ` : '';
+  const fw      = document.querySelector('input[name="fw"]:checked')?.value || 'both';
+  const fwLabel = fw === 'both' ? 'ESRS + IFRS' : fw === 'esrs' ? 'ESRS' : 'IFRS S1/S2';
+  document.getElementById('resultsMeta').textContent =
+    `${company}${parsed.report_summary || ''} ｜ ${fwLabel} ｜ ${new Date().toLocaleString('zh-TW')}`;
+
+  const topicMap = {};
+  records.forEach((rec, i) => {
+    const topic = gf(rec,'topic') || '其他';
+    if (!topicMap[topic]) topicMap[topic] = [];
+    const result = results.find(r => r.index === i + 1) || { status:'missing', finding:'', recommendation:'' };
+    topicMap[topic].push({ rec, result, idx: i });
+  });
+
+  const topicColors = ['#2e7d32','#1a4fa0','#b45309','#5e8c61','#7b1fa2','#0277bd','#d84315','#558b2f','#6d4c41','#00695c'];
+  let html = '';
+
+  Object.keys(topicMap).forEach((topic, ti) => {
+    const items = topicMap[topic];
+    const tc    = topicColors[ti % topicColors.length];
+    let tf = 0, tp = 0, tm = 0, tna = 0;
+    items.forEach(({ result }) => {
+      if (result.status === 'full') tf++;
+      else if (result.status === 'partial') tp++;
+      else if (result.status === 'missing') tm++;
+      else tna++;
+    });
+    const total    = items.length;
+    const coverPct = total ? Math.round((tf + tp * 0.5) / total * 100) : 0;
+    const blockId  = `topic-${ti}`;
+
+    html += `<div class="topic-block">
+      <div class="topic-header" id="th-${blockId}" onclick="toggleTopic('${blockId}')">
+        <div class="topic-color" style="background:${tc}"></div>
+        <div class="topic-info">
+          <div class="topic-top">
+            <span class="topic-name">${topic}</span>
+            <span class="topic-code">${total} 條要求</span>
+          </div>
+          <div class="topic-progress">
+            <div class="tpb-bg"><div class="tpb-fill" style="width:${coverPct}%;background:${tc}"></div></div>
+            <div class="tpb-label">覆蓋率 ${coverPct}%</div>
+          </div>
+        </div>
+        <div class="topic-stats">
+          ${tf  ? `<span class="stat-pill pill-full">${tf} 完整</span>` : ''}
+          ${tp  ? `<span class="stat-pill pill-part">${tp} 部分</span>` : ''}
+          ${tm  ? `<span class="stat-pill pill-miss">${tm} 缺口</span>` : ''}
+          ${tna ? `<span class="stat-pill pill-na">${tna} N/A</span>`  : ''}
+        </div>
+        <span class="topic-chevron">▶</span>
+      </div>
+      <div class="topic-body" id="${blockId}">
+        <table class="dr-table">
+          <thead><tr><th>框架</th><th>DR 代碼</th><th>揭露要求名稱</th><th>強制性</th><th>揭露狀況</th><th>評估說明</th><th></th></tr></thead>
+          <tbody>
+            ${items.map(({ rec, result, idx }) => {
+              const fw2     = gf(rec,'framework');
+              const code    = gf(rec,'dr_code');
+              const name    = gf(rec,'dr_name');
+              const mand    = gf(rec,'mandatory');
+              const content = gf(rec,'content');
+              const notes   = gf(rec,'notes');
+              const esrsRef = gf(rec,'esrs_ref');
+              const ifrsRef = gf(rec,'ifrs_ref');
+              const phased  = gf(rec,'phased');
+              const scope   = gf(rec,'scope');
+              const did     = `dr-${idx}`;
+              const badgeMap = {
+                full   : '<span class="dr-gap-badge badge-full">✅ 完整</span>',
+                partial: '<span class="dr-gap-badge badge-part">⚡ 部分</span>',
+                missing: '<span class="dr-gap-badge badge-miss">❌ 缺口</span>',
+                na     : '<span class="dr-gap-badge badge-na">— N/A</span>',
+              };
+              return `<tr>
+                <td><span class="dr-code" style="font-size:10px">${fw2}</span></td>
+                <td><span class="dr-code">${code}</span></td>
+                <td><div class="dr-name">${name}</div></td>
+                <td><span style="font-size:11px;color:var(--muted)">${mand || '—'}</span></td>
+                <td>${badgeMap[result.status] || badgeMap.missing}</td>
+                <td>
+                  <div class="dr-finding">${result.finding || '—'}</div>
+                  ${result.recommendation ? `<div class="dr-rec">💡 ${result.recommendation}</div>` : ''}
+                </td>
+                <td><button class="dr-expand-btn" onclick="toggleDR('${did}',this)">詳情 ▼</button></td>
+              </tr>
+              <tr class="dr-detail-row" id="${did}">
+                <td colspan="7">
+                  <div class="dr-detail-inner">
+                    <div style="margin-bottom:8px;font-size:12px;line-height:1.7">${content || '—'}</div>
+                    <div class="dr-detail-grid">
+                      ${notes   ? `<div><div class="dr-detail-label">補充說明</div><div class="dr-detail-val">${notes}</div></div>` : ''}
+                      ${esrsRef ? `<div><div class="dr-detail-label">對應 ESRS 條文</div><div class="dr-detail-val">${esrsRef}</div></div>` : ''}
+                      ${ifrsRef ? `<div><div class="dr-detail-label">對應 IFRS 條文</div><div class="dr-detail-val">${ifrsRef}</div></div>` : ''}
+                      ${phased  ? `<div><div class="dr-detail-label">分階段/過渡</div><div class="dr-detail-val">${phased}</div></div>` : ''}
+                      ${scope   ? `<div><div class="dr-detail-label">適用範圍</div><div class="dr-detail-val">${scope}</div></div>` : ''}
+                    </div>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('topicList').innerHTML = html;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggleTopic(id) {
+  document.getElementById(id).classList.toggle('open');
+  document.getElementById('th-' + id).classList.toggle('open');
+}
+function toggleDR(id, btn) {
+  const row = document.getElementById(id);
+  row.classList.toggle('open');
+  btn.textContent = row.classList.contains('open') ? '收起 ▲' : '詳情 ▼';
+}
+
+function downloadCSV() {
+  if (!lastResults) return;
+  const { parsed, records } = lastResults;
+  const results = parsed.results || [];
+  const BOM  = '\uFEFF';
+  const cols = ['框架','準則','DR代碼','主題','揭露要求名稱','強制性','揭露狀況','評估說明','改善建議','對應ESRS條文','對應IFRS條文'];
+  const statusLabel = { full:'完整揭露', partial:'部分揭露', missing:'缺口/未揭露', na:'不適用' };
+  const rows = records.map((rec, i) => {
+    const res = results.find(r => r.index === i + 1) || {};
+    return [
+      gf(rec,'framework'), gf(rec,'standard'), gf(rec,'dr_code'),
+      gf(rec,'topic'), gf(rec,'dr_name'), gf(rec,'mandatory'),
+      statusLabel[res.status] || '—', res.finding || '', res.recommendation || '',
+      gf(rec,'esrs_ref'), gf(rec,'ifrs_ref'),
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv  = BOM + cols.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `ZC_GapAnalysis_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function resetForm() {
+  document.getElementById('results').style.display = 'none';
+  removeFile(); lastResults = null;
+}
+
+function runDemo() {
+  const fakeRecords = [
+    { fields:{ '框架':'ESRS','準則':'ESRS 2','段落/DR代碼':'ESRS 2-1','揭露要求名稱':'治理：永續發展治理架構','說明內容':'揭露董事會及管理層在永續發展監督與管理中的角色及責任劃分。','強制性':'強制','主題分類':'治理','對應條文（ESRS）':'ESRS 2 GOV-1','對應條文（IFRS）':'IFRS S1 B1-B2' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS 2','段落/DR代碼':'ESRS 2-2','揭露要求名稱':'永續發展相關流程、機制及參與','說明內容':'說明企業如何將永續發展事宜整合至整體業務策略與規劃流程。','強制性':'強制','主題分類':'治理','對應條文（ESRS）':'ESRS 2 GOV-2','對應條文（IFRS）':'IFRS S1 B3' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS E1','段落/DR代碼':'E1-1','揭露要求名稱':'氣候相關轉型計畫','說明內容':'揭露企業在氣候相關議題上的短中長期轉型計畫，包含 1.5°C 路徑。','強制性':'強制','主題分類':'E1 氣候','對應條文（ESRS）':'ESRS E1 DR 1','對應條文（IFRS）':'IFRS S2 6a' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS E1','段落/DR代碼':'E1-4','揭露要求名稱':'範疇 1、2、3 溫室氣體排放量','說明內容':'揭露企業溫室氣體排放量（公噸 CO2e），涵蓋直接排放與間接排放。','強制性':'強制','主題分類':'E1 氣候','對應條文（ESRS）':'ESRS E1 DR 4','對應條文（IFRS）':'IFRS S2 29b' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS E1','段落/DR代碼':'E1-7','揭露要求名稱':'氣候相關機會','說明內容':'揭露氣候變遷對企業帶來的商業機會及因應策略。','強制性':'條件強制','主題分類':'E1 氣候','對應條文（ESRS）':'ESRS E1 DR 7','對應條文（IFRS）':'IFRS S2 10b' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS S1','段落/DR代碼':'S1-1','揭露要求名稱':'自有員工政策','說明內容':'揭露企業員工相關政策，包含多元、平等與共融、薪酬公平等。','強制性':'強制','主題分類':'S1 自有員工','對應條文（ESRS）':'ESRS S1 DR 1','對應條文（IFRS）':'' }},
+    { fields:{ '框架':'ESRS','準則':'ESRS S1','段落/DR代碼':'S1-6','揭露要求名稱':'員工特性（人數、性別、區域）','說明內容':'揭露企業員工組成基本特性，含全職/兼職、正式/約聘。','強制性':'強制','主題分類':'S1 自有員工','對應條文（ESRS）':'ESRS S1 DR 6','對應條文（IFRS）':'' }},
+    { fields:{ '框架':'IFRS','準則':'IFRS S1','段落/DR代碼':'S1-7','揭露要求名稱':'核心內容：永續相關風險與機會','說明內容':'揭露重大永續相關風險與機會對企業現金流、融資及資本成本的影響。','強制性':'強制','主題分類':'IFRS S1 核心','對應條文（ESRS）':'ESRS 2 SBM','對應條文（IFRS）':'IFRS S1 7' }},
+    { fields:{ '框架':'IFRS','準則':'IFRS S2','段落/DR代碼':'S2-10','揭露要求名稱':'氣候情境分析','說明內容':'說明企業採用的氣候情境（含 1.5°C 或 2°C 等），評估氣候對商業模式的影響。','強制性':'強制','主題分類':'IFRS S2 氣候','對應條文（ESRS）':'ESRS E1 SBM-3','對應條文（IFRS）':'IFRS S2 10' }},
+    { fields:{ '框架':'IFRS','準則':'IFRS S2','段落/DR代碼':'S2-29','揭露要求名稱':'溫室氣體排放總量（範疇 1/2/3）','說明內容':'揭露絕對排放量及排放強度，比較基準年變化，說明方法學。','強制性':'強制','主題分類':'IFRS S2 氣候','對應條文（ESRS）':'ESRS E1 DR4','對應條文（IFRS）':'IFRS S2 29' }},
+  ];
+  const demoResult = {
+    company_name: "ZC 範例企業股份有限公司",
+    report_summary: "報告具備基礎ESG揭露架構，氣候資訊部分完整，但範疇三排放及情境分析存在明顯缺口",
+    results: [
+      { index:1,  status:'full',    finding:'報告第3章揭露董事會永續委員會組成與職責，含年度審查機制', recommendation:'' },
+      { index:2,  status:'partial', finding:'提及將ESG納入年度策略規劃，但缺乏具體流程說明', recommendation:'建議增加永續議題如何影響業務決策的具體流程說明' },
+      { index:3,  status:'partial', finding:'有2030碳中和目標，但轉型路徑與中期里程碑不夠具體', recommendation:'建議補充2025/2028中期目標及對應減碳措施量化說明' },
+      { index:4,  status:'full',    finding:'報告附表揭露範疇1、2排放量及驗證聲明，並說明計算方法論', recommendation:'' },
+      { index:5,  status:'missing', finding:'報告未提及氣候相關商業機會評估，僅提風險面向', recommendation:'建議依 TCFD 架構新增氣候相關機會章節，說明綠色商機與因應策略' },
+      { index:6,  status:'full',    finding:'第5章有完整HR政策，含DEI、薪酬公平及申訴機制說明', recommendation:'' },
+      { index:7,  status:'full',    finding:'附錄人員組成表含性別、全職/兼職、地區分布等完整數據', recommendation:'' },
+      { index:8,  status:'partial', finding:'風險章節列出氣候及供應鏈風險，但缺少對資金流動影響的量化分析', recommendation:'建議增加永續風險對融資成本與資本配置的量化敏感度分析' },
+      { index:9,  status:'missing', finding:'報告未進行氣候情境分析，無1.5°C或2°C路徑評估', recommendation:'建議新增至少兩種氣候情境分析，說明對業務模式的衝擊' },
+      { index:10, status:'partial', finding:'有範疇1、2數據，範疇3僅揭露類別11（使用階段）無其他類別', recommendation:'建議擴大範疇3盤查範圍，至少涵蓋前5大排放類別' },
+    ]
+  };
+  renderResults(demoResult, fakeRecords);
+  document.getElementById('resultsMeta').textContent = 'ZC 範例企業 ｜ ' + demoResult.report_summary + ' ｜ 這是示範結果';
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '❌ ' + msg; box.style.display = 'block';
+}
+
+async function testProxy() {
+  const box = document.getElementById('errorBox');
+  box.style.display = 'block'; box.style.background = ''; box.style.color = '';
+  box.textContent = '⏳ 測試中…';
+  try {
+    const res  = await fetch(CONFIG.PROXY_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:10, messages:[{role:'user',content:'hi'}] })
+    });
+    const data = await res.json();
+    if (data.content || data.id) {
+      box.style.background = '#e8f5e9'; box.style.color = '#2e7d32';
+      box.textContent = '✅ Proxy 連線成功！';
+    } else {
+      box.style.background = '#fdecea'; box.style.color = '#c0392b';
+      box.textContent = '❌ Proxy 回應異常：' + JSON.stringify(data).substring(0, 100);
+    }
+  } catch(e) {
+    box.style.background = '#fdecea'; box.style.color = '#c0392b';
+    box.textContent = '❌ 無法連線：' + e.message;
+  }
+}
+</script>
+</body>
+</html>
