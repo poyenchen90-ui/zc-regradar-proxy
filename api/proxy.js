@@ -9,6 +9,7 @@ export const config = {
 // ── 設定 ──────────────────────────────────────────────
 const DAILY_LIMIT        = 10;
 const DAILY_LIMIT_RADAR  = 3;
+const DAILY_LIMIT_PRO    = 5;
 const AIRTABLE_BASE      = 'appwr5pb1cU6KrmCo';
 const USAGE_TABLE        = 'Usage Tracking';
 
@@ -122,7 +123,7 @@ export default async function handler(req, res) {
     return res.status(response.status).json(data);
   }
 
-  // ── Route 3: RepRadar（新增，每日 3 次限制）──────────────────
+  // ── Route 3: RepRadar（每日 3 次限制）──────────────────
   if (target === 'repradar') {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -131,7 +132,6 @@ export default async function handler(req, res) {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
             || req.socket?.remoteAddress
             || 'unknown';
-    // 加上 repradar: 前綴，跟其他工具的紀錄分開
     const identifier = `repradar:${ip}`;
 
     const today = new Date().toISOString().slice(0, 10);
@@ -141,7 +141,6 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // 查今日 repradar 使用次數
     const filter = encodeURIComponent(`AND({email}="${identifier}",{date}="${today}")`);
     const searchRes = await fetch(
       `${atBase}/${encodeURIComponent(USAGE_TABLE)}?filterByFormula=${filter}`,
@@ -159,12 +158,89 @@ export default async function handler(req, res) {
       });
     }
 
-    // 使用 repradar 專屬 API Key
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY_REPRADAR,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify(req.body),
+    });
+    const data = await response.json();
+
+    if (!data.error) {
+      if (existing) {
+        await fetch(`${atBase}/${encodeURIComponent(USAGE_TABLE)}/${existing.id}`, {
+          method: 'PATCH',
+          headers: atHeaders,
+          body: JSON.stringify({ fields: { count: currentCount + 1 } }),
+        });
+      } else {
+        await fetch(`${atBase}/${encodeURIComponent(USAGE_TABLE)}`, {
+          method: 'POST',
+          headers: atHeaders,
+          body: JSON.stringify({
+            records: [{ fields: { email: identifier, date: today, count: 1 } }]
+          }),
+        });
+      }
+
+      return res.status(response.status).json({
+        ...data,
+        _quota: {
+          used: currentCount + 1,
+          limit: DAILY_LIMIT_RADAR,
+          remaining: DAILY_LIMIT_RADAR - currentCount - 1,
+        }
+      });
+    }
+
+    return res.status(response.status).json(data);
+  }
+
+  // ── Route 4: ProRadar（每日 5 次限制，獨立 API Key）──────────
+  if (target === 'proradar') {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+            || req.socket?.remoteAddress
+            || 'unknown';
+    const identifier = `proradar:${ip}`;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const atBase = `https://api.airtable.com/v0/${AIRTABLE_BASE}`;
+    const atHeaders = {
+      Authorization: `Bearer ${process.env.AIRTABLE_TOKEN}`,
+      'Content-Type': 'application/json',
+    };
+
+    // 查今日 proradar 使用次數
+    const filter = encodeURIComponent(`AND({email}="${identifier}",{date}="${today}")`);
+    const searchRes = await fetch(
+      `${atBase}/${encodeURIComponent(USAGE_TABLE)}?filterByFormula=${filter}`,
+      { headers: atHeaders }
+    );
+    const searchData = await searchRes.json();
+    const existing = (searchData.records || [])[0] || null;
+    const currentCount = existing ? (existing.fields.count || 0) : 0;
+
+    if (currentCount >= DAILY_LIMIT_PRO) {
+      return res.status(429).json({
+        error: {
+          message: `今日 ProRadar 合規偵測次數（${DAILY_LIMIT_PRO} 次）已用完，請明天再來！如需更多偵測，請聯繫 ZC 顧問團隊。`
+        }
+      });
+    }
+
+    // 使用 proradar 專屬 API Key
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY_PRORADAR,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(req.body),
@@ -193,8 +269,8 @@ export default async function handler(req, res) {
         ...data,
         _quota: {
           used: currentCount + 1,
-          limit: DAILY_LIMIT_RADAR,
-          remaining: DAILY_LIMIT_RADAR - currentCount - 1,
+          limit: DAILY_LIMIT_PRO,
+          remaining: DAILY_LIMIT_PRO - currentCount - 1,
         }
       });
     }
